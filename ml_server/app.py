@@ -1,5 +1,4 @@
 import pandas as pd
-from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 import joblib
 import os
@@ -7,8 +6,13 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 # --- Configuration ---
-INPUT_CSV_FILE = 'health_data_final.csv'
-MODEL_FILE_PATH = 'risk_model.pkl'
+# Get the absolute path to the directory where this script is located
+SCRIPT_DIR = os.path.dirname(__file__)
+
+# Join the directory path with the filenames to create absolute paths
+INPUT_CSV_FILE = os.path.join(SCRIPT_DIR, 'health_data_final.csv')
+MODEL_FILE_PATH = os.path.join(SCRIPT_DIR, 'risk_model.pkl')
+
 # These will be populated when the model is trained or loaded
 MODEL_FEATURES = [] 
 MODEL_DTYPES = None
@@ -21,7 +25,7 @@ def train_and_save_model():
     global MODEL_FEATURES, MODEL_DTYPES
     print("--- Starting Model Training ---")
     
-    # Load the dataset
+    # Load the dataset using the absolute path
     try:
         df = pd.read_csv(INPUT_CSV_FILE)
         print("Dataset loaded successfully.")
@@ -50,7 +54,7 @@ def train_and_save_model():
     X = df[MODEL_FEATURES]
     y = df[target]
 
-    # *** NEW: Capture the data types of the training data ***
+    # Capture the data types of the training data
     MODEL_DTYPES = X.dtypes.to_dict()
 
     print(f"Features for training: {MODEL_FEATURES}")
@@ -88,10 +92,10 @@ def predict():
     try:
         data = request.get_json()
         
-        # Create a pandas DataFrame from the input data, ensuring correct column order
+        # Create a pandas DataFrame from the input data
         input_df = pd.DataFrame([data], columns=MODEL_FEATURES)
 
-        # *** FIX: Ensure data types match the training data before prediction ***
+        # Ensure data types match the training data before prediction
         input_df = input_df.astype(MODEL_DTYPES)
 
         # Make prediction and get probabilities
@@ -116,6 +120,6 @@ def predict():
         return jsonify({'error': str(e)}), 500
 
 # --- 3. Run the Flask App ---
+# This part is only for local testing. Render will use the Gunicorn command.
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
-
